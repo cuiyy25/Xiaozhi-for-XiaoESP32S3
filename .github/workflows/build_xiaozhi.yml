@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   build:
-    name: Build seeedstudio-s3-wifi
+    name: Auto-Detect and Build
     runs-on: ubuntu-latest
     container:
       image: espressif/idf:v5.3.1
@@ -18,16 +18,42 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Build Firmware
+      - name: Smart Build Firmware
         shell: bash
         run: |
           source /opt/esp/idf/export.sh
-          # 必须用这句，绝不能出现 idf.py build！
-          python scripts/release.py seeedstudio-s3-wifi --name seeedstudio-s3-wifi
+          
+          echo "======================================"
+          echo "正在自动寻找源代码文件夹..."
+          # 自动全盘搜索 CMakeLists.txt 的位置
+          CMAKE_PATH=$(find . -name "CMakeLists.txt" ! -path "*/build/*" ! -path "*/managed_components/*" | head -n 1)
+          
+          if[ -z "$CMAKE_PATH" ]; then
+            echo "严重错误: 整个仓库里都没有找到源代码 (CMakeLists.txt)!"
+            exit 1
+          fi
+          
+          PROJECT_ROOT=$(dirname "$CMAKE_PATH")
+          echo "-> 找到源代码了！位置在: $PROJECT_ROOT"
+          cd "$PROJECT_ROOT"
+          
+          echo "======================================"
+          echo "开始智能编译..."
+          # 判断作者有没有留下高级打包脚本
+          if [ -f "scripts/release.py" ]; then
+             echo "-> 发现高级脚本，正在生成合并固件..."
+             python scripts/release.py seeedstudio-s3-wifi --name seeedstudio-s3-wifi
+          else
+             echo "-> 未发现高级脚本，使用标准模式编译..."
+             idf.py set-target esp32s3
+             idf.py build
+          fi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: xiaozhi_perfect_firmware
-          path: build/merged-binary.bin
+          path: |
+            **/build/merged-binary.bin
+            **/build/xiaozhi.bin
           if-no-files-found: warn
