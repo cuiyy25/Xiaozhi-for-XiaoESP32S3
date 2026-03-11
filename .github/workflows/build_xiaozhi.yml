@@ -11,8 +11,8 @@ jobs:
     name: Build Firmware
     runs-on: ubuntu-latest
     container:
-      # 使用 5.4 版本，它在处理组件依赖时比 5.5 更稳定，且完全能跑通小智的代码
-      image: espressif/idf:v5.4
+      # 回归 v5.3，这是目前小智固件兼容性最强的底座
+      image: espressif/idf:release-v5.3
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -24,31 +24,24 @@ jobs:
         run: |
           . /opt/esp/idf/export.sh
           
-          # 1. 强力开启忽略版本检查模式
-          export IDF_COMPONENT_MANAGER_IGNORE_IDF_CHECK=1
-          
-          # 2. 进入源码目录
+          # 1. 进入源码目录
           cd Source/xiaozhi-esp32-2.2.2
           
-          # 3. 【外科手术】强行剔除所有 4G/拨号相关的冲突组件
-          # 只要看到这几个词，直接把整行删掉，WiFi版不需要它们
-          echo "正在切除不必要的 4G 依赖项..."
-          sed -i '/esp-ml307/d' main/idf_component.yml
-          sed -i '/uart-eth-modem/d' main/idf_component.yml
-          sed -i '/uart-uhci/d' main/idf_component.yml
+          # 2. 【核心修复】恢复可能被搞乱的文件
+          git checkout main/idf_component.yml || true
           
-          # 4. 【版本降级】把剩下的所有版本限制降到 5.0.0，确保万无一失
-          echo "正在放宽 IDF 版本限制..."
+          # 3. 【核心修复】只改数字，不删行，确保 YAML 格式绝对安全
+          # 把所有的 5.5.2 统一降级为 5.0.0
+          echo "正在安全降级版本限制..."
           find . -name "idf_component.yml" -exec sed -i 's/5.5.2/5.0.0/g' {} +
           
-          # 5. 清理可能干扰的旧缓存
-          rm -rf dependencies.lock
+          # 4. 开启“无视版本”模式
+          export IDF_COMPONENT_MANAGER_IGNORE_IDF_CHECK=1
           
-          echo "一切就绪，开始编译..."
-          # 执行编译脚本
+          echo "一切就绪，开始最终编译..."
           python scripts/release.py seeedstudio-s3-wifi --name seeedstudio-s3-wifi
           
-          # 6. 检查结果
+          # 5. 检查结果
           ls -l build/*.bin
 
       - name: Upload artifacts
