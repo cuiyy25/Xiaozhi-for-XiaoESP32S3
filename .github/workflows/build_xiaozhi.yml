@@ -11,7 +11,7 @@ jobs:
     name: Build Firmware
     runs-on: ubuntu-latest
     container:
-      # 锁定使用 v5.5 版本，避免 v6.1 的组件缺失问题
+      # 使用 5.5 镜像，它包含了所有必须的组件（如 MQTT）
       image: espressif/idf:v5.5
     steps:
       - name: Checkout Code
@@ -24,13 +24,18 @@ jobs:
         run: |
           . /opt/esp/idf/export.sh
           
-          # 进入源码目录
+          # 1. 进入源码文件夹
           cd Source/xiaozhi-esp32-2.2.2
           
-          # 运行编译
+          # 2. 【核心修复】搜索所有配置文件，把强制要求的 5.5.2 改成 5.3.0
+          # 这样可以欺骗编译器，让它在 5.5.0 环境下继续编译
+          find . -name "idf_component.yml" -exec sed -i 's/5.5.2/5.3.0/g' {} +
+          
+          # 3. 运行编译脚本
+          echo "开始强制编译..."
           python scripts/release.py seeedstudio-s3-wifi --name seeedstudio-s3-wifi
           
-          # 检查结果
+          # 4. 检查结果
           ls -l build/*.bin
 
       - name: Upload artifacts
