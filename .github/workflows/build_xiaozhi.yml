@@ -23,21 +23,12 @@ jobs:
         run: |
           source /opt/esp/idf/export.sh
           
-          # 直接进入刚才日志里暴露出来的真实代码目录
-          if[ -d "Source/xiaozhi-esp32-2.2.2" ]; then
-            cd Source/xiaozhi-esp32-2.2.2
-            echo "成功进入源码目录！"
-          fi
+          # 1. 直接进入源码文件夹
+          cd Source/xiaozhi-esp32-2.2.2
+          echo "当前位置: $(pwd)"
           
-          # 这次我发誓绝对加上了空格
-          if [ -f "scripts/release.py" ]; then
-             echo "-> 使用原作者的高级打包脚本..."
-             python scripts/release.py seeedstudio-s3-wifi --name seeedstudio-s3-wifi
-          else
-             echo "-> 使用基础编译..."
-             idf.py set-target esp32s3
-             idf.py build
-          fi
+          # 2. 直接运行作者的打包脚本
+          python scripts/release.py seeedstudio-s3-wifi --name seeedstudio-s3-wifi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
