@@ -11,7 +11,7 @@ jobs:
     name: Build Firmware
     runs-on: ubuntu-latest
     container:
-      # 维持使用 5.5 镜像，保证组件库完整
+      # 维持使用 5.5 镜像，这是目前最兼容的稳定版本
       image: espressif/idf:v5.5
     steps:
       - name: Checkout Code
@@ -24,26 +24,31 @@ jobs:
         run: |
           . /opt/esp/idf/export.sh
           
-          # 【核心修复 1】强行关闭组件管理器的版本检查
-          export IDF_COMPONENT_MANAGER_IGNORE_IDF_CHECK=1
-          
-          # 进入源码目录
+          # 1. 进入源码目录
           cd Source/xiaozhi-esp32-2.2.2
           
-          # 【核心修复 2】同时修改本地文件中的版本限制
+          # 2. 【核心修复】强力删除导致冲突的 4G 模块依赖 (Seeed S3 WiFi版不需要它)
+          echo "正在移除冲突的 4G 组件依赖..."
+          find . -name "idf_component.yml" -exec sed -i '/esp-ml307/d' {} +
+          
+          # 3. 【核心修复】降低所有组件对 IDF 的版本要求
+          echo "正在降低版本限制..."
           find . -name "idf_component.yml" -exec sed -i 's/5.5.2/5.0.0/g' {} +
           
-          echo "开始忽略版本限制进行强制编译..."
-          python scripts/release.py seeedstudio-s3-wifi --name seeedstudio-s3-wifi
+          # 4. 设置环境变量，双重保险忽略版本检查
+          export IDF_COMPONENT_MANAGER_IGNORE_IDF_CHECK=1
           
-          # 检查结果
-          echo "检查生成的固件文件:"
+          echo "开始最终强制编译..."
+          # 将变量带入 python 运行环境
+          IDF_COMPONENT_MANAGER_IGNORE_IDF_CHECK=1 python scripts/release.py seeedstudio-s3-wifi --name seeedstudio-s3-wifi
+          
+          # 5. 验证结果
+          echo "检查固件生成情况:"
           ls -l build/*.bin
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: xiaozhi_perfect_firmware
-          # 确保路径匹配
           path: Source/xiaozhi-esp32-2.2.2/build/*.bin
           if-no-files-found: error
