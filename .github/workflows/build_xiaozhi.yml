@@ -11,7 +11,8 @@ jobs:
     name: Build Firmware
     runs-on: ubuntu-latest
     container:
-      image: espressif/idf:v5.3.1
+      # 这里改成了最新版镜像，确保版本号 >= 5.5.2
+      image: espressif/idf:latest 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -23,18 +24,5 @@ jobs:
         run: |
           source /opt/esp/idf/export.sh
           
-          # 1. 直接进入源码文件夹
+          # 进入源码文件夹
           cd Source/xiaozhi-esp32-2.2.2
-          echo "当前位置: $(pwd)"
-          
-          # 2. 直接运行作者的打包脚本
-          python scripts/release.py seeedstudio-s3-wifi --name seeedstudio-s3-wifi
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: xiaozhi_perfect_firmware
-          path: |
-            **/build/merged-binary.bin
-            **/build/xiaozhi.bin
-          if-no-files-found: warn
