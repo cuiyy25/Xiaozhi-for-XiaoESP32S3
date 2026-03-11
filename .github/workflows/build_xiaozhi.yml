@@ -11,7 +11,7 @@ jobs:
     name: Build Firmware
     runs-on: ubuntu-latest
     container:
-      # 锁定使用 5.5 镜像，保证底层驱动和 MQTT 库完整
+      # 回归 v5.5 镜像，它包含所有必须的内置组件
       image: espressif/idf:v5.5
     steps:
       - name: Checkout Code
@@ -24,31 +24,31 @@ jobs:
         run: |
           . /opt/esp/idf/export.sh
           
-          # 1. 进入源码目录
-          cd Source/xiaozhi-esp32-2.2.2
-          
-          # 2. 【核心修复】温和降级：把所有版本号 (如 5.5.2 或 3.6.3) 统一替换为 "*"
-          # 这样 YAML 结构保持不变，但版本检查会失效，从而顺利通过
-          echo "正在降级所有组件的版本约束..."
-          find . -name "idf_component.yml" -exec sed -i 's/version: "[^"]*"/version: "*"/g' {} +
-          find . -name "idf_component.yml" -exec sed -i 's/idf: "[^"]*"/idf: "*"/g' {} +
-          find . -name "idf_component.yml" -exec sed -i 's/rules:.*//g' {} +
-          
-          # 3. 设置环境变量，强行忽略 IDF 版本小版本号差异
+          # 【核心修复 1】设置强力环境变量，强制跳过所有组件的版本检查
           export IDF_COMPONENT_MANAGER_IGNORE_IDF_CHECK=1
           
-          echo "开始进行最终安全编译..."
-          # 执行作者提供的打包脚本
-          IDF_COMPONENT_MANAGER_IGNORE_IDF_CHECK=1 python scripts/release.py seeedstudio-s3-wifi --name seeedstudio-s3-wifi
+          # 进入源码目录
+          cd Source/xiaozhi-esp32-2.2.2
           
-          # 4. 检查生成的固件
+          # 【核心修复 2】只做最基础的文字替换，绝不破坏文件结构
+          # 仅仅把 5.5.2 这个数字改成 5.4.0
+          echo "正在微调版本限制..."
+          find . -name "idf_component.yml" -exec sed -i 's/5.5.2/5.4.0/g' {} +
+          
+          # 【核心修复 3】清理可能存在的冲突缓存
+          rm -f dependencies.lock
+          
+          echo "开始最终编译..."
+          # 执行编译脚本
+          python scripts/release.py seeedstudio-s3-wifi --name seeedstudio-s3-wifi
+          
+          # 检查生成的固件
           echo "检查固件文件位置:"
-          ls -R build/ | grep .bin
+          ls -l build/*.bin
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: xiaozhi_perfect_firmware
-          # 使用通配符寻找生成的合并固件
           path: Source/xiaozhi-esp32-2.2.2/build/*.bin
           if-no-files-found: error
