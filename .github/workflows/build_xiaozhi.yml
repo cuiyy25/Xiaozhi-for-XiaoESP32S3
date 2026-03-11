@@ -11,8 +11,8 @@ jobs:
     name: Build Firmware
     runs-on: ubuntu-latest
     container:
-      # 回归 v5.3，这是目前小智固件兼容性最强的底座
-      image: espressif/idf:release-v5.3
+      # 切换到 v5.4 镜像，满足 esp_video >= 5.4 的要求，且避开 v5.5 的版本坑
+      image: espressif/idf:v5.4
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -24,24 +24,24 @@ jobs:
         run: |
           . /opt/esp/idf/export.sh
           
-          # 1. 进入源码目录
+          # 修复 Git 权限警告
+          git config --global --add safe.directory /__w/Xiaozhi-for-XiaoESP32S3/Xiaozhi-for-XiaoESP32S3
+          
+          # 进入源码目录
           cd Source/xiaozhi-esp32-2.2.2
           
-          # 2. 【核心修复】恢复可能被搞乱的文件
-          git checkout main/idf_component.yml || true
-          
-          # 3. 【核心修复】只改数字，不删行，确保 YAML 格式绝对安全
-          # 把所有的 5.5.2 统一降级为 5.0.0
-          echo "正在安全降级版本限制..."
-          find . -name "idf_component.yml" -exec sed -i 's/5.5.2/5.0.0/g' {} +
-          
-          # 4. 开启“无视版本”模式
+          # 【最强开关】强行关闭所有组件的版本强制检查
           export IDF_COMPONENT_MANAGER_IGNORE_IDF_CHECK=1
           
-          echo "一切就绪，开始最终编译..."
+          # 【温和修复】把 5.5.2 降级为 5.0.0，确保逻辑不冲突
+          echo "放开版本限制..."
+          find . -name "idf_component.yml" -exec sed -i 's/5.5.2/5.0.0/g' {} +
+          
+          echo "开始正式编译 (预计耗时 10-15 分钟)..."
           python scripts/release.py seeedstudio-s3-wifi --name seeedstudio-s3-wifi
           
-          # 5. 检查结果
+          # 检查结果
+          echo "固件生成检查:"
           ls -l build/*.bin
 
       - name: Upload artifacts
