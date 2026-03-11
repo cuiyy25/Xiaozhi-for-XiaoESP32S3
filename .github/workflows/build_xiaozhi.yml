@@ -25,10 +25,10 @@ jobs:
           
           echo "======================================"
           echo "正在自动寻找源代码文件夹..."
-          # 自动全盘搜索 CMakeLists.txt 的位置
           CMAKE_PATH=$(find . -name "CMakeLists.txt" ! -path "*/build/*" ! -path "*/managed_components/*" | head -n 1)
           
-          if[ -z "$CMAKE_PATH" ]; then
+          # 注意：这里 if 和[ 之间加上了空格
+          if [ -z "$CMAKE_PATH" ]; then
             echo "严重错误: 整个仓库里都没有找到源代码 (CMakeLists.txt)!"
             exit 1
           fi
@@ -39,8 +39,7 @@ jobs:
           
           echo "======================================"
           echo "开始智能编译..."
-          # 判断作者有没有留下高级打包脚本
-          if [ -f "scripts/release.py" ]; then
+          if[ -f "scripts/release.py" ]; then
              echo "-> 发现高级脚本，正在生成合并固件..."
              python scripts/release.py seeedstudio-s3-wifi --name seeedstudio-s3-wifi
           else
