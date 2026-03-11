@@ -11,15 +11,20 @@
 // Enable Simplex (two bus systems)
 #define AUDIO_I2S_METHOD_SIMPLEX
 
-// Speaker (TX, MASTER) - Bus #0
-#define AUDIO_I2S_SPK_GPIO_BCLK GPIO_NUM_7
-#define AUDIO_I2S_SPK_GPIO_LRCK GPIO_NUM_4
-#define AUDIO_I2S_SPK_GPIO_DOUT GPIO_NUM_2
+// ==========================================
+// 修复后的扬声器引脚 (Bus #0)
+// ==========================================
+#define AUDIO_I2S_SPK_GPIO_BCLK GPIO_NUM_7  // 对应物理引脚 D8
+#define AUDIO_I2S_SPK_GPIO_LRCK GPIO_NUM_8  // 对应物理引脚 D9
+#define AUDIO_I2S_SPK_GPIO_DOUT GPIO_NUM_9  // 对应物理引脚 D10
 
-// Microphone (RX, MASTER) - Bus #1
-#define AUDIO_I2S_MIC_GPIO_SCK GPIO_NUM_44
-#define AUDIO_I2S_MIC_GPIO_WS GPIO_NUM_9
-#define AUDIO_I2S_MIC_GPIO_DIN GPIO_NUM_1
+// ==========================================
+// 修复后的麦克风引脚 (Bus #1) —— 避开串口冲突
+// ==========================================
+#define AUDIO_I2S_MIC_GPIO_SCK GPIO_NUM_2   // 对应物理引脚 D1
+#define AUDIO_I2S_MIC_GPIO_WS  GPIO_NUM_3   // 对应物理引脚 D2
+#define AUDIO_I2S_MIC_GPIO_DIN GPIO_NUM_4   // 对应物理引脚 D3
+
 
 // OLED I2C (SDA/SCL)
 // D4 -> GPIO5 : SDA
@@ -46,13 +51,15 @@
 // Onboard LED
 #define BUILTIN_LED_GPIO GPIO_NUM_21
 
-// Buttons
+// ==========================================
+// 修复后的按钮引脚 —— 挪到不用的引脚，防止冲突
+// ==========================================
 #define BOOT_BUTTON_GPIO GPIO_NUM_0         // 板载 Boot
-#define VOLUME_UP_BUTTON_GPIO GPIO_NUM_3    // D2
-#define VOLUME_DOWN_BUTTON_GPIO GPIO_NUM_8  // D9
+#define VOLUME_UP_BUTTON_GPIO GPIO_NUM_1    // 改到 D0 (闲置)
+#define VOLUME_DOWN_BUTTON_GPIO GPIO_NUM_10 // 未引出引脚，占位防报错
 
 // The touch keys are not needed for now, but we've provided a placeholder for them to ensure
 // compatibility with the code's constructor.
-#define TOUCH_BUTTON_GPIO GPIO_NUM_3
+#define TOUCH_BUTTON_GPIO GPIO_NUM_1        // 改到 D0 (闲置)
 
 #endif  // BOARD_CONFIG_H_
