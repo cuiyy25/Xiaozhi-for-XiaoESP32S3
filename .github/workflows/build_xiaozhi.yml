@@ -11,7 +11,6 @@ jobs:
     name: Build Firmware
     runs-on: ubuntu-latest
     container:
-      # 维持使用 5.5 镜像，这是目前最兼容的稳定版本
       image: espressif/idf:v5.5
     steps:
       - name: Checkout Code
@@ -27,19 +26,22 @@ jobs:
           # 1. 进入源码目录
           cd Source/xiaozhi-esp32-2.2.2
           
-          # 2. 【核心修复】强力删除导致冲突的 4G 模块依赖 (Seeed S3 WiFi版不需要它)
-          echo "正在移除冲突的 4G 组件依赖..."
+          # 2. 【大招 1】移除所有导致版本冲突的非必要组件依赖 (4G模块、调制解调器等)
+          echo "移除冲突组件..."
           find . -name "idf_component.yml" -exec sed -i '/esp-ml307/d' {} +
+          find . -name "idf_component.yml" -exec sed -i '/uart-eth-modem/d' {} +
+          find . -name "idf_component.yml" -exec sed -i '/uart-uhci/d' {} +
           
-          # 3. 【核心修复】降低所有组件对 IDF 的版本要求
-          echo "正在降低版本限制..."
+          # 3. 【大招 2】强行把所有 idf 版本要求从 5.5.2 降级到 5.0.0
+          echo "强行降级所有版本检查..."
+          find . -name "idf_component.yml" -exec sed -i 's/>=5.5.2/>=5.0.0/g' {} +
           find . -name "idf_component.yml" -exec sed -i 's/5.5.2/5.0.0/g' {} +
-          
-          # 4. 设置环境变量，双重保险忽略版本检查
+
+          # 4. 【大招 3】设置系统环境变量，强行忽略组件管理器的版本锁定
           export IDF_COMPONENT_MANAGER_IGNORE_IDF_CHECK=1
           
           echo "开始最终强制编译..."
-          # 将变量带入 python 运行环境
+          # 将变量注入环境运行
           IDF_COMPONENT_MANAGER_IGNORE_IDF_CHECK=1 python scripts/release.py seeedstudio-s3-wifi --name seeedstudio-s3-wifi
           
           # 5. 验证结果
