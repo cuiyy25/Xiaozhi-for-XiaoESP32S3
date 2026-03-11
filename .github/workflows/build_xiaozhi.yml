@@ -1,52 +1,38 @@
-name: Build Perfect Xiaozhi
+name: Build Xiaozhi Firmware
 
 on:
-  workflow_dispatch:
-
-permissions:
-  contents: read
+  workflow_dispatch: # 允许手动点击运行
 
 jobs:
   build:
-    name: Build Firmware
     runs-on: ubuntu-latest
-    container:
-      # 切换到 v5.4 镜像，满足 esp_video >= 5.4 的要求，且避开 v5.5 的版本坑
-      image: espressif/idf:v5.4
+    # 核心修改：将镜像版本从 release-v5.4 升级到 v5.5.2
+    container: espressif/idf:v5.5.2
+
     steps:
-      - name: Checkout Code
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Build
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y python3-pip
+
+      - name: Build Firmware
         shell: bash
         run: |
           . /opt/esp/idf/export.sh
-          
-          # 修复 Git 权限警告
-          git config --global --add safe.directory /__w/Xiaozhi-for-XiaoESP32S3/Xiaozhi-for-XiaoESP32S3
-          
-          # 进入源码目录
-          cd Source/xiaozhi-esp32-2.2.2
-          
-          # 【最强开关】强行关闭所有组件的版本强制检查
-          export IDF_COMPONENT_MANAGER_IGNORE_IDF_CHECK=1
-          
-          # 【温和修复】把 5.5.2 降级为 5.0.0，确保逻辑不冲突
-          echo "放开版本限制..."
-          find . -name "idf_component.yml" -exec sed -i 's/5.5.2/5.0.0/g' {} +
-          
-          echo "开始正式编译 (预计耗时 10-15 分钟)..."
-          python scripts/release.py seeedstudio-s3-wifi --name seeedstudio-s3-wifi
-          
-          # 检查结果
-          echo "固件生成检查:"
-          ls -l build/*.bin
+          # 这里确保编译 Seeed XIAO S3 的配置
+          idf.py set-target esp32s3
+          idf.py build
 
-      - name: Upload artifacts
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: xiaozhi_perfect_firmware
-          path: Source/xiaozhi-esp32-2.2.2/build/*.bin
-          if-no-files-found: error
+          name: xiaozhi-firmware-v5.5.2
+          path: |
+            build/xiaozhi.bin
+            build/bootloader/bootloader.bin
+            build/partition_table/partition-table.bin
